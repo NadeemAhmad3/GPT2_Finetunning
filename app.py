@@ -1,42 +1,41 @@
 import streamlit as st
 import torch
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
-import os
+from transformers import T5Tokenizer, T5ForConditionalGeneration
+import pandas as pd
+import time
+from datetime import datetime
+import json
 
-# Page configuration
+# Page config
 st.set_page_config(
-    page_title="AI Recipe Generator",
-    page_icon="🍳",
+    page_title="GPT2 Model Tester",
+    page_icon="🤖",
     layout="wide"
 )
 
 # Custom CSS
 st.markdown("""
-<style>
-.recipe-box {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 30px;
-    border-radius: 15px;
-    color: white;
-    margin: 20px 0;
-}
-.ingredient-box {
-    background-color: #f8f9fa;
-    padding: 20px;
-    border-radius: 10px;
-    border-left: 5px solid #667eea;
-    margin: 15px 0;
-}
-.title-text {
-    font-size: 2.5em;
-    font-weight: bold;
-    text-align: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 10px;
-}
-</style>
+    <style>
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #1f77b4;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .stButton>button {
+        width: 100%;
+        background-color: #1f77b4;
+        color: white;
+        font-weight: bold;
+    }
+    .metric-card {
+        background-color: #f0f2f6;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin: 0.5rem 0;
+    }
+    </style>
 """, unsafe_allow_html=True)
 
 # Initialize session state
@@ -44,292 +43,418 @@ if 'model' not in st.session_state:
     st.session_state.model = None
 if 'tokenizer' not in st.session_state:
     st.session_state.tokenizer = None
-if 'model_loaded' not in st.session_state:
-    st.session_state.model_loaded = False
+if 'history' not in st.session_state:
+    st.session_state.history = []
+if 'device' not in st.session_state:
+    st.session_state.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# Title
-st.markdown('<p class="title-text">🍳 AI Recipe Generator</p>', unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #666;'>Generate delicious recipes using fine-tuned GPT-2</p>", unsafe_allow_html=True)
+# Header
+st.markdown('<div class="main-header">🤖 T5 Model Testing Interface</div>', unsafe_allow_html=True)
 
-# Sidebar for model loading
+# Sidebar - Model Configuration
 with st.sidebar:
-    st.header("⚙️ Model Settings")
+    st.header("⚙️ Model Configuration")
     
-    # Model path input
-    model_path = st.text_input(
-        "Model Directory Path",
-        value="./recipe-gpt2-finetuned",
-        help="Enter the path to your fine-tuned model directory"
+    # Device info
+    device_name = "GPU (CUDA)" if torch.cuda.is_available() else "CPU"
+    st.info(f"🖥️ Using: **{device_name}**")
+    
+    if torch.cuda.is_available():
+        st.success(f"GPU: {torch.cuda.get_device_name(0)}")
+    
+    st.divider()
+    
+    # Model loading section
+    st.subheader("📂 Load Model")
+    
+    model_source = st.radio(
+        "Model Source:",
+        ["Local Path", "Hugging Face Hub"],
+        help="Choose where to load your model from"
     )
     
-    # Load model button
-    if st.button("📂 Load Model", use_container_width=True):
-        if not os.path.exists(model_path):
-            st.error(f"❌ Directory not found: {model_path}")
-        else:
-            with st.spinner("Loading model... Please wait..."):
-                try:
-                    # Load model and tokenizer
-                    model = GPT2LMHeadModel.from_pretrained(model_path)
-                    tokenizer = GPT2Tokenizer.from_pretrained(model_path)
-                    
-                    # Set pad token
-                    if tokenizer.pad_token is None:
-                        tokenizer.pad_token = tokenizer.eos_token
-                    
-                    # Store in session state
-                    st.session_state.model = model
-                    st.session_state.tokenizer = tokenizer
-                    st.session_state.model_loaded = True
-                    
-                    st.success("✅ Model loaded successfully!")
-                    
-                except Exception as e:
-                    st.error(f"❌ Error loading model: {str(e)}")
-                    st.session_state.model_loaded = False
-    
-    # Model status
-    st.markdown("---")
-    if st.session_state.model_loaded:
-        st.success("🟢 Model Ready")
-        if st.button("🗑️ Unload Model"):
-            st.session_state.model = None
-            st.session_state.tokenizer = None
-            st.session_state.model_loaded = False
-            st.rerun()
+    if model_source == "Local Path":
+        model_path = st.text_input(
+            "Model Directory Path:",
+            placeholder="./my_finetuned_t5",
+            help="Enter the path to your fine-tuned model directory"
+        )
     else:
-        st.warning("🔴 No Model Loaded")
+        model_path = st.text_input(
+            "Model Name:",
+            placeholder="t5-small",
+            help="Enter the Hugging Face model name"
+        )
     
-    # Instructions
-    st.markdown("---")
-    st.markdown("### 📝 Instructions")
-    st.markdown("""
-    1. Enter your model path
-    2. Click 'Load Model'
-    3. Choose input method
-    4. Generate recipes!
-    """)
-
-# Main content
-if not st.session_state.model_loaded:
-    # Show instructions when no model is loaded
-    st.info("👈 Please load your fine-tuned model from the sidebar to start generating recipes!")
-    
-    st.markdown("---")
-    st.markdown("### 🎯 How to Use")
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("#### 1️⃣ Load Model")
-        st.write("Enter the path to your trained model and click 'Load Model'")
+        if st.button("🔄 Load Model"):
+            if model_path:
+                with st.spinner("Loading model..."):
+                    try:
+                        st.session_state.tokenizer = T5Tokenizer.from_pretrained(model_path)
+                        st.session_state.model = T5ForConditionalGeneration.from_pretrained(model_path)
+                        st.session_state.model.to(st.session_state.device)
+                        st.session_state.model.eval()
+                        st.success("✅ Model loaded successfully!")
+                        time.sleep(1)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Error loading model: {str(e)}")
+            else:
+                st.warning("⚠️ Please enter a model path")
     
     with col2:
-        st.markdown("#### 2️⃣ Choose Input")
-        st.write("Enter a recipe title or list of ingredients")
+        if st.button("🗑️ Clear Model"):
+            st.session_state.model = None
+            st.session_state.tokenizer = None
+            st.success("Model cleared!")
+            time.sleep(1)
+            st.rerun()
     
-    with col3:
-        st.markdown("#### 3️⃣ Generate")
-        st.write("Click generate and get your AI-created recipe!")
+    # Model status
+    st.divider()
+    if st.session_state.model is not None:
+        st.success("✅ Model Status: **Loaded**")
+        
+        # Model info
+        with st.expander("📊 Model Information"):
+            num_params = sum(p.numel() for p in st.session_state.model.parameters())
+            st.write(f"**Total Parameters:** {num_params:,}")
+            st.write(f"**Model Type:** {st.session_state.model.config.model_type}")
+            st.write(f"**Vocab Size:** {st.session_state.model.config.vocab_size:,}")
+    else:
+        st.warning("⚠️ Model Status: **Not Loaded**")
+    
+    st.divider()
+    
+    # Clear history
+    if st.button("🗑️ Clear History"):
+        st.session_state.history = []
+        st.success("History cleared!")
+        time.sleep(1)
+        st.rerun()
 
+# Main content area
+if st.session_state.model is None:
+    st.warning("⚠️ Please load a model from the sidebar to begin testing.")
+    
+    with st.expander("📖 How to use this app"):
+        st.markdown("""
+        ### Getting Started
+        1. **Load your model** from the sidebar using either:
+           - Local path to your fine-tuned model directory
+           - Hugging Face model name
+        2. **Enter your input text** in the text area
+        3. **Configure generation parameters** (optional)
+        4. **Click Generate** to test your model
+        5. **View results** and download history
+        
+        ### Tips
+        - Use the prefix format your model was trained on (e.g., "summarize: ", "translate English to French: ")
+        - Adjust generation parameters to control output quality
+        - Save your test history for later analysis
+        """)
 else:
-    # Recipe generation interface
-    st.markdown("---")
+    # Create tabs
+    tab1, tab2, tab3 = st.tabs(["🧪 Single Test", "📝 Batch Test", "📊 History"])
     
-    # Input method selection
-    st.subheader("🎨 Create Your Recipe")
-    
-    input_method = st.radio(
-        "Choose how to generate your recipe:",
-        ["🏷️ Recipe Title", "🥕 Ingredients List", "✍️ Custom Prompt"],
-        horizontal=True
-    )
-    
-    prompt = ""
-    
-    if input_method == "🏷️ Recipe Title":
-        st.markdown("### Enter Recipe Name")
-        recipe_title = st.text_input(
-            "What would you like to cook?",
-            placeholder="e.g., Chocolate Chip Cookies, Chicken Curry, Caesar Salad...",
-            label_visibility="collapsed"
-        )
-        if recipe_title:
-            prompt = f"Recipe: {recipe_title}"
-    
-    elif input_method == "🥕 Ingredients List":
-        st.markdown("### Enter Your Ingredients")
+    # Tab 1: Single Test
+    with tab1:
+        st.header("Single Input Test")
+        
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            ingredients_input = st.text_area(
-                "List your ingredients (one per line):",
-                height=200,
-                placeholder="chicken breast\nonions\ngarlic\ntomatoes\nolive oil\nsalt\npepper",
-                label_visibility="collapsed"
+            input_text = st.text_area(
+                "Input Text:",
+                height=150,
+                placeholder="Enter your text here... (e.g., 'summarize: Your text to summarize')",
+                help="Enter the text you want to test. Include task prefix if your model was trained with one."
             )
+            
+            # Quick templates
+            st.write("**Quick Templates:**")
+            template_cols = st.columns(4)
+            with template_cols[0]:
+                if st.button("Summarize"):
+                    st.session_state.template_text = "summarize: "
+            with template_cols[1]:
+                if st.button("Translate"):
+                    st.session_state.template_text = "translate English to French: "
+            with template_cols[2]:
+                if st.button("Question"):
+                    st.session_state.template_text = "question: "
+            with template_cols[3]:
+                if st.button("Custom"):
+                    st.session_state.template_text = ""
         
         with col2:
-            st.markdown("**💡 Tips:**")
-            st.markdown("""
-            - Enter one ingredient per line
-            - Be specific (e.g., "chicken breast" not just "chicken")
-            - Include quantities if you want
-            - More ingredients = more detailed recipe
-            """)
-        
-        if ingredients_input:
-            ingredients = [ing.strip() for ing in ingredients_input.split('\n') if ing.strip()]
-            if ingredients:
-                st.markdown(f"**Selected ingredients:** {', '.join(ingredients)}")
-                ingredients_str = '\n'.join(ingredients)
-                prompt = f"Recipe: Dish\n\nIngredients:\n{ingredients_str}\n\nInstructions:"
-    
-    else:  # Custom Prompt
-        st.markdown("### Enter Custom Prompt")
-        prompt = st.text_area(
-            "Write your custom prompt:",
-            height=200,
-            placeholder="Recipe: Spicy Thai Curry\n\nIngredients:\ncoconut milk\nred curry paste\nchicken\n\nInstructions:",
-            label_visibility="collapsed"
-        )
-    
-    # Generation parameters in expander
-    with st.expander("⚙️ Advanced Settings", expanded=False):
-        col1, col2 = st.columns(2)
-        
-        with col1:
+            st.subheader("Generation Parameters")
+            
             max_length = st.slider(
-                "Maximum Length",
-                min_value=100,
-                max_value=1000,
-                value=500,
-                step=50,
-                help="Maximum number of tokens to generate"
+                "Max Length:",
+                min_value=10,
+                max_value=512,
+                value=128,
+                step=10,
+                help="Maximum length of generated text"
+            )
+            
+            num_beams = st.slider(
+                "Num Beams:",
+                min_value=1,
+                max_value=10,
+                value=4,
+                help="Number of beams for beam search"
             )
             
             temperature = st.slider(
-                "Temperature",
+                "Temperature:",
                 min_value=0.1,
                 max_value=2.0,
-                value=0.8,
+                value=1.0,
                 step=0.1,
-                help="Higher = more creative, Lower = more focused"
+                help="Sampling temperature (lower = more deterministic)"
             )
-        
-        with col2:
+            
             top_k = st.slider(
-                "Top K",
-                min_value=10,
+                "Top-K:",
+                min_value=0,
                 max_value=100,
                 value=50,
-                step=5,
-                help="Number of top tokens to consider"
+                help="Top-K sampling parameter"
             )
             
             top_p = st.slider(
-                "Top P (Nucleus Sampling)",
-                min_value=0.5,
+                "Top-P:",
+                min_value=0.0,
                 max_value=1.0,
                 value=0.95,
                 step=0.05,
-                help="Cumulative probability threshold"
+                help="Nucleus sampling parameter"
+            )
+            
+            repetition_penalty = st.slider(
+                "Repetition Penalty:",
+                min_value=1.0,
+                max_value=3.0,
+                value=1.0,
+                step=0.1,
+                help="Penalty for repeating tokens"
             )
         
-        num_recipes = st.slider(
-            "Number of Recipes to Generate",
-            min_value=1,
-            max_value=5,
-            value=1,
-            help="Generate multiple recipe variations"
-        )
-    
-    # Generate button
-    st.markdown("---")
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        generate_button = st.button(
-            "🎨 Generate Recipe",
-            type="primary",
-            use_container_width=True
-        )
-    
-    # Generation
-    if generate_button:
-        if not prompt or prompt.strip() == "":
-            st.warning("⚠️ Please provide some input to generate a recipe!")
-        else:
-            with st.spinner("👨‍🍳 Creating your recipe... This may take a moment..."):
-                try:
-                    # Prepare input
-                    input_ids = st.session_state.tokenizer.encode(
-                        prompt,
-                        return_tensors='pt'
-                    )
-                    
-                    # Generate
-                    with torch.no_grad():
-                        outputs = st.session_state.model.generate(
-                            input_ids,
-                            max_length=max_length,
-                            temperature=temperature,
-                            top_k=top_k,
-                            top_p=top_p,
-                            do_sample=True,
-                            num_return_sequences=num_recipes,
-                            pad_token_id=st.session_state.tokenizer.eos_token_id
-                        )
-                    
-                    # Decode outputs
-                    generated_recipes = []
-                    for output in outputs:
-                        recipe = st.session_state.tokenizer.decode(
-                            output,
+        if st.button("🚀 Generate", type="primary"):
+            if input_text.strip():
+                with st.spinner("Generating..."):
+                    try:
+                        start_time = time.time()
+                        
+                        # Tokenize
+                        inputs = st.session_state.tokenizer(
+                            input_text,
+                            return_tensors="pt",
+                            max_length=512,
+                            truncation=True
+                        ).to(st.session_state.device)
+                        
+                        # Generate
+                        with torch.no_grad():
+                            outputs = st.session_state.model.generate(
+                                **inputs,
+                                max_length=max_length,
+                                num_beams=num_beams,
+                                temperature=temperature,
+                                top_k=top_k,
+                                top_p=top_p,
+                                repetition_penalty=repetition_penalty,
+                                early_stopping=True
+                            )
+                        
+                        # Decode
+                        output_text = st.session_state.tokenizer.decode(
+                            outputs[0],
                             skip_special_tokens=True
                         )
-                        generated_recipes.append(recipe)
+                        
+                        generation_time = time.time() - start_time
+                        
+                        # Display results
+                        st.success("✅ Generation Complete!")
+                        
+                        st.subheader("📤 Output:")
+                        st.info(output_text)
+                        
+                        # Metrics
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Input Tokens", len(inputs['input_ids'][0]))
+                        with col2:
+                            st.metric("Output Tokens", len(outputs[0]))
+                        with col3:
+                            st.metric("Time (s)", f"{generation_time:.2f}")
+                        
+                        # Save to history
+                        st.session_state.history.append({
+                            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            'input': input_text,
+                            'output': output_text,
+                            'max_length': max_length,
+                            'num_beams': num_beams,
+                            'temperature': temperature,
+                            'generation_time': generation_time
+                        })
+                        
+                    except Exception as e:
+                        st.error(f"❌ Error during generation: {str(e)}")
+            else:
+                st.warning("⚠️ Please enter some input text")
+    
+    # Tab 2: Batch Test
+    with tab2:
+        st.header("Batch Input Test")
+        
+        st.write("Test multiple inputs at once. Enter one input per line.")
+        
+        batch_input = st.text_area(
+            "Batch Inputs (one per line):",
+            height=200,
+            placeholder="summarize: First text to test\nsummarize: Second text to test\nsummarize: Third text to test"
+        )
+        
+        col1, col2 = st.columns([1, 3])
+        
+        with col1:
+            batch_max_length = st.number_input(
+                "Max Length:",
+                min_value=10,
+                max_value=512,
+                value=128
+            )
+            
+            batch_num_beams = st.number_input(
+                "Num Beams:",
+                min_value=1,
+                max_value=10,
+                value=4
+            )
+        
+        if st.button("🚀 Generate Batch", type="primary"):
+            if batch_input.strip():
+                inputs_list = [line.strip() for line in batch_input.split('\n') if line.strip()]
+                
+                if inputs_list:
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
                     
-                    # Display results
-                    st.markdown("---")
-                    st.markdown("## 🍽️ Your Generated Recipe(s)")
+                    results = []
                     
-                    for i, recipe in enumerate(generated_recipes, 1):
-                        with st.container():
-                            if num_recipes > 1:
-                                st.markdown(f"### Recipe Variation {i}")
+                    for idx, input_text in enumerate(inputs_list):
+                        status_text.text(f"Processing {idx + 1}/{len(inputs_list)}...")
+                        
+                        try:
+                            inputs = st.session_state.tokenizer(
+                                input_text,
+                                return_tensors="pt",
+                                max_length=512,
+                                truncation=True
+                            ).to(st.session_state.device)
                             
-                            # Display recipe in a nice box
-                            st.markdown(
-                                f'<div class="ingredient-box"><pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">{recipe}</pre></div>',
-                                unsafe_allow_html=True
-                            )
-                            
-                            # Download button
-                            col1, col2, col3 = st.columns([1, 1, 1])
-                            with col2:
-                                st.download_button(
-                                    label=f"💾 Download Recipe {i}",
-                                    data=recipe,
-                                    file_name=f"recipe_{i}.txt",
-                                    mime="text/plain",
-                                    key=f"download_{i}",
-                                    use_container_width=True
+                            with torch.no_grad():
+                                outputs = st.session_state.model.generate(
+                                    **inputs,
+                                    max_length=batch_max_length,
+                                    num_beams=batch_num_beams,
+                                    early_stopping=True
                                 )
                             
-                            if i < len(generated_recipes):
-                                st.markdown("---")
+                            output_text = st.session_state.tokenizer.decode(
+                                outputs[0],
+                                skip_special_tokens=True
+                            )
+                            
+                            results.append({
+                                'Input': input_text,
+                                'Output': output_text
+                            })
+                            
+                        except Exception as e:
+                            results.append({
+                                'Input': input_text,
+                                'Output': f"Error: {str(e)}"
+                            })
+                        
+                        progress_bar.progress((idx + 1) / len(inputs_list))
                     
-                    st.success("✅ Recipe(s) generated successfully!")
-                    st.balloons()
+                    status_text.text("✅ Batch processing complete!")
                     
-                except Exception as e:
-                    st.error(f"❌ Error generating recipe: {str(e)}")
-                    st.exception(e)
+                    # Display results
+                    st.subheader("📊 Batch Results")
+                    df = pd.DataFrame(results)
+                    st.dataframe(df, use_container_width=True)
+                    
+                    # Download button
+                    csv = df.to_csv(index=False)
+                    st.download_button(
+                        "📥 Download Results (CSV)",
+                        csv,
+                        "batch_results.csv",
+                        "text/csv",
+                        key='download-csv'
+                    )
+                else:
+                    st.warning("⚠️ No valid inputs found")
+            else:
+                st.warning("⚠️ Please enter batch inputs")
+    
+    # Tab 3: History
+    with tab3:
+        st.header("Test History")
+        
+        if st.session_state.history:
+            st.write(f"**Total Tests:** {len(st.session_state.history)}")
+            
+            # Display history
+            for idx, entry in enumerate(reversed(st.session_state.history)):
+                with st.expander(f"Test {len(st.session_state.history) - idx} - {entry['timestamp']}"):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write("**Input:**")
+                        st.text(entry['input'])
+                    
+                    with col2:
+                        st.write("**Output:**")
+                        st.text(entry['output'])
+                    
+                    st.write("**Parameters:**")
+                    param_cols = st.columns(4)
+                    with param_cols[0]:
+                        st.metric("Max Length", entry['max_length'])
+                    with param_cols[1]:
+                        st.metric("Num Beams", entry['num_beams'])
+                    with param_cols[2]:
+                        st.metric("Temperature", entry['temperature'])
+                    with param_cols[3]:
+                        st.metric("Time (s)", f"{entry['generation_time']:.2f}")
+            
+            # Download history
+            if st.button("📥 Download History (JSON)"):
+                json_str = json.dumps(st.session_state.history, indent=2)
+                st.download_button(
+                    "Download",
+                    json_str,
+                    "test_history.json",
+                    "application/json"
+                )
+        else:
+            st.info("📭 No test history yet. Run some tests to see them here!")
 
 # Footer
-st.markdown("---")
-st.markdown(
-    "<p style='text-align: center; color: #666;'>Made with ❤️ using Streamlit & GPT-2 | "
-    "Fine-tuned for Recipe Generation</p>",
-    unsafe_allow_html=True
-)
+st.divider()
+st.markdown("""
+<div style='text-align: center; color: #666; padding: 1rem;'>
+    <p>🤖 GPT2 Model Testing Interface | Built with Streamlit</p>
+</div>
+""", unsafe_allow_html=True)
