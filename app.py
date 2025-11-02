@@ -49,7 +49,7 @@ if 'device' not in st.session_state:
     st.session_state.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Header
-st.markdown('<div class="main-header">🤖 T5 Model Testing Interface</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">🤖 GPT2 Model Testing Interface</div>', unsafe_allow_html=True)
 
 # Sidebar - Model Configuration
 with st.sidebar:
@@ -76,13 +76,13 @@ with st.sidebar:
     if model_source == "Local Path":
         model_path = st.text_input(
             "Model Directory Path:",
-            placeholder="./my_finetuned_t5",
+            placeholder="./my_finetuned_GPT2",
             help="Enter the path to your fine-tuned model directory"
         )
     else:
         model_path = st.text_input(
             "Model Name:",
-            placeholder="t5-small",
+            placeholder="GPT2-small",
             help="Enter the Hugging Face model name"
         )
     
