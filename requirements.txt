@@ -1,5 +1,6 @@
-streamlit==1.28.1
-torch==2.0.1
-transformers==4.35.0
-tokenizers==0.15.0
-accelerate==0.24.1
+streamlit
+torch
+transformers
+pandas
+sentencepiece
+protobuf
