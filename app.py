@@ -91,7 +91,7 @@ st.markdown("""
 # ============================================================================
 
 # IMPORTANT: Replace with YOUR Kaggle username and dataset name
-KAGGLE_DATASET_ID = "your-username/gpt2-recipe-model"  # UPDATE THIS!
+KAGGLE_DATASET_ID = "nadeemahmad003/gpt2-finetunning"  # UPDATE THIS!
 
 # Define paths for model files
 MODEL_DIR = Path("downloaded_model")
