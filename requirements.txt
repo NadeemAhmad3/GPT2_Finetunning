@@ -1,6 +1,7 @@
-streamlit
-torch
-transformers
-pandas
-sentencepiece
-protobuf
+streamlit==1.28.0
+torch==2.1.0
+transformers==4.36.2
+peft==0.7.1
+tiktoken==0.5.2
+numpy==1.26.2
+pandas==2.1.4
