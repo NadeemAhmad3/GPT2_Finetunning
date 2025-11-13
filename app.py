@@ -1,6 +1,7 @@
 """
 GPT-2 Recipe Generator - Streamlit Application
 Fine-tuned model for generating cooking recipes from ingredients
+Fetches model from Kaggle Dataset
 """
 
 import streamlit as st
@@ -9,6 +10,7 @@ import numpy as np
 import pandas as pd
 import json
 import os
+from pathlib import Path
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from peft import PeftModel, PeftConfig
 import warnings
@@ -85,24 +87,76 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# CONFIGURATION
+# KAGGLE DATASET CONFIGURATION
 # ============================================================================
 
-class Config:
-    # Model paths (adjust these to your Kaggle dataset paths)
-    MODEL_PATH = "/kaggle/input/gpt2-recipe-model/final_model"  # Update this
-    BASE_MODEL = "gpt2"
-    
-    # Generation settings
-    MAX_LENGTH = 512
-    DEFAULT_TEMPERATURE = 0.8
-    DEFAULT_TOP_P = 0.9
-    DEFAULT_TOP_K = 50
-    
-    # Device
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+# IMPORTANT: Replace with YOUR Kaggle username and dataset name
+KAGGLE_DATASET_ID = "your-username/gpt2-recipe-model"  # UPDATE THIS!
 
-config = Config()
+# Define paths for model files
+MODEL_DIR = Path("downloaded_model")
+MODEL_PATH = MODEL_DIR / "final_model"
+BASE_MODEL = "gpt2"
+
+# Device configuration
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+# ============================================================================
+# DOWNLOAD MODEL FROM KAGGLE
+# ============================================================================
+
+@st.cache_resource
+def download_and_setup_model():
+    """
+    Downloads model files from Kaggle if they don't exist.
+    This function runs only once per session thanks to st.cache_resource.
+    """
+    # Check if running in Streamlit Cloud with Kaggle credentials
+    if 'KAGGLE_USERNAME' in st.secrets and 'KAGGLE_KEY' in st.secrets:
+        # Check if model is already downloaded
+        if not MODEL_PATH.exists():
+            st.info("📥 Downloading model files from Kaggle... This may take a moment.")
+            
+            try:
+                # Setup Kaggle API credentials
+                os.environ['KAGGLE_USERNAME'] = st.secrets['KAGGLE_USERNAME']
+                os.environ['KAGGLE_KEY'] = st.secrets['KAGGLE_KEY']
+                
+                from kaggle.api.kaggle_api_extended import KaggleApi
+                api = KaggleApi()
+                api.authenticate()
+                
+                # Create directory to download files
+                MODEL_DIR.mkdir(exist_ok=True)
+                
+                # Download the dataset
+                api.dataset_download_files(KAGGLE_DATASET_ID, path=MODEL_DIR, unzip=True)
+                st.success("✅ Model files downloaded successfully!")
+                return True
+                
+            except Exception as e:
+                st.error(f"❌ Error downloading from Kaggle: {e}")
+                st.info("Please check:\n1. KAGGLE_DATASET_ID is correct\n2. Kaggle credentials in secrets\n3. Dataset is public or you have access")
+                return False
+    
+    # For local development
+    else:
+        if not MODEL_PATH.exists():
+            st.warning("""
+                ⚠️ **Running locally without Kaggle credentials**
+                
+                Please either:
+                1. Add Kaggle credentials to `.streamlit/secrets.toml`:
+                   ```
+                   KAGGLE_USERNAME = "your_username"
+                   KAGGLE_KEY = "your_api_key"
+                   ```
+                2. Or manually place model files in `downloaded_model/final_model/` directory
+            """)
+            return False
+        return True
+    
+    return MODEL_PATH.exists()
 
 # ============================================================================
 # LOAD MODEL & TOKENIZER (CACHED)
@@ -110,7 +164,14 @@ config = Config()
 
 @st.cache_resource
 def load_model_and_tokenizer():
-    """Load the fine-tuned model and tokenizer"""
+    """Load the fine-tuned model and tokenizer from downloaded files"""
+    
+    # First, ensure model is downloaded
+    model_ready = download_and_setup_model()
+    
+    if not model_ready:
+        st.error("❌ Model files are not available. Cannot load the model.")
+        return None, None, None
     
     with st.spinner("🔄 Loading AI model... This may take a moment..."):
         try:
@@ -146,36 +207,73 @@ def load_model_and_tokenizer():
                 
                 tokenizer = TiktokenWrapper()
                 tokenizer_type = "tiktoken"
+                st.info("✅ Using Tiktoken tokenizer")
             
             except:
                 # Fallback to transformers tokenizer
-                tokenizer = GPT2Tokenizer.from_pretrained(config.BASE_MODEL)
+                st.info("📥 Loading GPT-2 tokenizer...")
+                tokenizer = GPT2Tokenizer.from_pretrained(BASE_MODEL)
                 tokenizer.pad_token = tokenizer.eos_token
                 tokenizer.pad_token_id = tokenizer.eos_token_id
                 tokenizer_type = "transformers"
+                st.info("✅ Using Transformers tokenizer")
             
             # Load base model
-            base_model = GPT2LMHeadModel.from_pretrained(config.BASE_MODEL)
+            st.info("📥 Loading base GPT-2 model...")
+            base_model = GPT2LMHeadModel.from_pretrained(BASE_MODEL)
             
-            # Load LoRA adapters
-            if os.path.exists(config.MODEL_PATH):
-                model = PeftModel.from_pretrained(base_model, config.MODEL_PATH)
+            # Load LoRA adapters from downloaded path
+            st.info("📥 Loading fine-tuned LoRA adapters...")
+            if MODEL_PATH.exists():
+                model = PeftModel.from_pretrained(base_model, str(MODEL_PATH))
+                st.success("✅ Fine-tuned model loaded successfully!")
             else:
-                st.error(f"❌ Model not found at {config.MODEL_PATH}")
-                st.info("Using base GPT-2 model without fine-tuning")
+                st.warning("⚠️ LoRA adapters not found. Using base GPT-2.")
                 model = base_model
             
-            model = model.to(config.DEVICE)
+            model = model.to(DEVICE)
             model.eval()
+            
+            st.success(f"✅ Model ready on {DEVICE.upper()}!")
             
             return model, tokenizer, tokenizer_type
             
         except Exception as e:
             st.error(f"❌ Error loading model: {e}")
+            import traceback
+            st.code(traceback.format_exc())
             return None, None, None
 
-# Load model
-model, tokenizer, tokenizer_type = load_model_and_tokenizer()
+# Initialize session state
+if 'model' not in st.session_state:
+    st.session_state.model = None
+    st.session_state.tokenizer = None
+    st.session_state.tokenizer_type = None
+    st.session_state.model_loaded = False
+
+# Load model (only once)
+if not st.session_state.model_loaded:
+    model, tokenizer, tokenizer_type = load_model_and_tokenizer()
+    st.session_state.model = model
+    st.session_state.tokenizer = tokenizer
+    st.session_state.tokenizer_type = tokenizer_type
+    st.session_state.model_loaded = True
+else:
+    model = st.session_state.model
+    tokenizer = st.session_state.tokenizer
+    tokenizer_type = st.session_state.tokenizer_type
+
+# ============================================================================
+# GENERATION CONFIGURATION
+# ============================================================================
+
+class GenerationConfig:
+    MAX_LENGTH = 512
+    DEFAULT_TEMPERATURE = 0.8
+    DEFAULT_TOP_P = 0.9
+    DEFAULT_TOP_K = 50
+
+gen_config = GenerationConfig()
 
 # ============================================================================
 # RECIPE GENERATION FUNCTION
@@ -210,7 +308,7 @@ def generate_recipe(title, ingredients, temperature=0.8, top_p=0.9, top_k=50,
     else:
         input_ids = tokenizer.encode(prompt, return_tensors='pt')
     
-    input_ids = input_ids.to(config.DEVICE)
+    input_ids = input_ids.to(DEVICE)
     
     # Generate
     results = []
@@ -279,16 +377,66 @@ def main():
     
     # Check if model loaded
     if model is None:
-        st.error("⚠️ Model failed to load. Please check your model path configuration.")
-        st.info(f"Current model path: `{config.MODEL_PATH}`")
-        st.info("Update the `MODEL_PATH` in the code to point to your uploaded model dataset.")
+        st.error("⚠️ Model failed to load. Please check your configuration.")
+        st.info(f"""
+        **Current Configuration:**
+        - Kaggle Dataset ID: `{KAGGLE_DATASET_ID}`
+        - Model Path: `{MODEL_PATH}`
+        
+        **Setup Instructions:**
+        1. Upload your model to Kaggle as a dataset
+        2. Update `KAGGLE_DATASET_ID` in the code
+        3. Add Kaggle credentials to Streamlit secrets
+        """)
+        
+        # Show setup instructions
+        with st.expander("📖 Setup Guide"):
+            st.markdown("""
+            ### For Streamlit Cloud Deployment:
+            
+            1. **Upload Model to Kaggle:**
+               - Go to kaggle.com/datasets
+               - Click "New Dataset"
+               - Upload your `final_model` folder
+               - Make it public or keep private (need auth)
+            
+            2. **Get Kaggle API Credentials:**
+               - Go to kaggle.com/settings
+               - Scroll to "API" section
+               - Click "Create New API Token"
+               - Download `kaggle.json`
+            
+            3. **Add to Streamlit Secrets:**
+               - In your Streamlit Cloud dashboard
+               - Go to App Settings → Secrets
+               - Add:
+               ```toml
+               KAGGLE_USERNAME = "your_username"
+               KAGGLE_KEY = "your_api_key_from_kaggle.json"
+               ```
+            
+            4. **Update Code:**
+               - Set `KAGGLE_DATASET_ID = "username/dataset-name"`
+            
+            ### For Local Development:
+            
+            Create `.streamlit/secrets.toml`:
+            ```toml
+            KAGGLE_USERNAME = "your_username"
+            KAGGLE_KEY = "your_api_key"
+            ```
+            """)
         return
     
     # Sidebar - Generation Settings
     with st.sidebar:
         st.header("⚙️ Generation Settings")
         
-        st.info(f"🤖 Model: GPT-2 LoRA Fine-tuned\n\n💻 Device: {config.DEVICE.upper()}")
+        st.info(f"""
+        🤖 **Model:** GPT-2 LoRA Fine-tuned  
+        💻 **Device:** {DEVICE.upper()}  
+        📦 **Source:** Kaggle Dataset
+        """)
         
         st.subheader("🎛️ Advanced Options")
         
@@ -296,7 +444,7 @@ def main():
             "Temperature",
             min_value=0.1,
             max_value=2.0,
-            value=config.DEFAULT_TEMPERATURE,
+            value=gen_config.DEFAULT_TEMPERATURE,
             step=0.1,
             help="Higher = more creative, Lower = more focused"
         )
@@ -305,7 +453,7 @@ def main():
             "Top P (Nucleus Sampling)",
             min_value=0.1,
             max_value=1.0,
-            value=config.DEFAULT_TOP_P,
+            value=gen_config.DEFAULT_TOP_P,
             step=0.05,
             help="Probability threshold for nucleus sampling"
         )
@@ -314,7 +462,7 @@ def main():
             "Top K",
             min_value=10,
             max_value=100,
-            value=config.DEFAULT_TOP_K,
+            value=gen_config.DEFAULT_TOP_K,
             step=10,
             help="Number of top tokens to consider"
         )
@@ -323,7 +471,7 @@ def main():
             "Max Length",
             min_value=256,
             max_value=1024,
-            value=config.MAX_LENGTH,
+            value=gen_config.MAX_LENGTH,
             step=64,
             help="Maximum length of generation"
         )
