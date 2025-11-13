@@ -6,3 +6,4 @@ peft>=0.7.1
 tiktoken>=0.5.2
 numpy>=1.24.3
 pandas>=2.1.4
+kaggle>=1.6.0
