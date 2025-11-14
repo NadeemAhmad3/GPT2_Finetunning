@@ -1,6 +1,5 @@
 """
 GPT-2 Recipe Generator - Streamlit Application
-Fixed for flat Kaggle dataset structure (no final_model subfolder)
 """
 
 import streamlit as st
