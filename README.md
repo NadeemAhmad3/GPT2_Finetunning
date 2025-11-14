@@ -158,12 +158,7 @@ Dataset:
 
 ### 🌐 Live Application
 
-**Try it now:** [AI Recipe Generator Live Demo](#)
-
-### 📹 Video Walkthrough
-
-<!-- Add video demo link or GIF -->
-![Demo GIF](screenshots/demo.gif)
+**Try it now:** [AI Recipe Generator Live Demo](https://recipify-gpt2finetunning.streamlit.app/)
 
 ### 💡 Example Generation
 
