@@ -1,5 +1,5 @@
 """
-GPT-2 Recipe Generator - Streamlit Application
+GPT-2 Recipe Generator - Modern Web Interface
 """
 
 import streamlit as st
@@ -22,73 +22,24 @@ st.set_page_config(
     page_title="🍳 AI Recipe Generator",
     page_icon="🍳",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # ============================================================================
-# CUSTOM CSS
+# LOAD CUSTOM CSS
 # ============================================================================
 
-st.markdown("""
-    <style>
-    .main-header {
-        font-size: 3rem;
-        font-weight: bold;
-        text-align: center;
-        background: linear-gradient(90deg, #FF6B6B, #4ECDC4);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        padding: 1rem 0;
-    }
-    .sub-header {
-        text-align: center;
-        color: #666;
-        font-size: 1.2rem;
-        margin-bottom: 2rem;
-    }
-    .recipe-box {
-        background-color: #f8f9fa;
-        border-left: 4px solid #4ECDC4;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        margin: 1rem 0;
-    }
-    .ingredient-tag {
-        display: inline-block;
-        background-color: #e3f2fd;
-        color: #1976d2;
-        padding: 0.3rem 0.8rem;
-        margin: 0.2rem;
-        border-radius: 1rem;
-        font-size: 0.9rem;
-    }
-    .step-number {
-        background-color: #4ECDC4;
-        color: white;
-        border-radius: 50%;
-        width: 30px;
-        height: 30px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        margin-right: 10px;
-    }
-    </style>
-""", unsafe_allow_html=True)
+if os.path.exists('style.css'):
+    with open('style.css') as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 # ============================================================================
 # KAGGLE DATASET CONFIGURATION
 # ============================================================================
 
-# Your Kaggle dataset ID
 KAGGLE_DATASET_ID = "nadeemahmad003/gpt2-finetunning"
-
-# FIXED: Model files are at root level of downloaded dataset (no subfolder)
 MODEL_DIR = Path("downloaded_model")
 BASE_MODEL = "gpt2"
-
-# Device configuration
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # ============================================================================
@@ -97,17 +48,12 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 @st.cache_resource
 def download_and_setup_model():
-    """
-    Downloads model files from Kaggle if they don't exist.
-    """
-    # Check if running in Streamlit Cloud with Kaggle credentials
+    """Downloads model files from Kaggle if they don't exist."""
     if 'KAGGLE_USERNAME' in st.secrets and 'KAGGLE_KEY' in st.secrets:
-        # Check if model is already downloaded
         adapter_config = MODEL_DIR / "adapter_config.json"
         
         if not adapter_config.exists():
             try:
-                # Setup Kaggle API credentials
                 os.environ['KAGGLE_USERNAME'] = st.secrets['KAGGLE_USERNAME']
                 os.environ['KAGGLE_KEY'] = st.secrets['KAGGLE_KEY']
                 
@@ -115,32 +61,19 @@ def download_and_setup_model():
                 api = KaggleApi()
                 api.authenticate()
                 
-                # Create directory to download files
                 MODEL_DIR.mkdir(exist_ok=True)
-                
-                # Download the dataset
                 api.dataset_download_files(KAGGLE_DATASET_ID, path=MODEL_DIR, unzip=True)
                 return True
                 
             except Exception as e:
                 st.error(f"❌ Error downloading from Kaggle: {e}")
                 return False
-    
-    # For local development
     else:
         adapter_config = MODEL_DIR / "adapter_config.json"
         if not adapter_config.exists():
-            st.warning("""
-                ⚠️ **Running locally without Kaggle credentials**
-                
-                Please either:
-                1. Add Kaggle credentials to `.streamlit/secrets.toml`
-                2. Or manually place model files in `downloaded_model/` directory
-            """)
             return False
         return True
     
-    # Check if adapter_config.json exists
     return (MODEL_DIR / "adapter_config.json").exists()
 
 # ============================================================================
@@ -151,7 +84,6 @@ def download_and_setup_model():
 def load_model_and_tokenizer():
     """Load the fine-tuned model and tokenizer from downloaded files"""
     
-    # First, ensure model is downloaded
     model_ready = download_and_setup_model()
     
     if not model_ready:
@@ -159,7 +91,6 @@ def load_model_and_tokenizer():
         return None, None, None
     
     try:
-        # Load tokenizer (matching your training setup)
         try:
             import tiktoken
             
@@ -197,18 +128,14 @@ def load_model_and_tokenizer():
             tokenizer.pad_token_id = tokenizer.eos_token_id
             tokenizer_type = "transformers"
         
-        # Load base model
         base_model = GPT2LMHeadModel.from_pretrained(BASE_MODEL)
         
-        # FIXED: Load LoRA adapters from MODEL_DIR (not MODEL_DIR/final_model)
-        # Your dataset structure: downloaded_model/adapter_config.json
         if (MODEL_DIR / "adapter_config.json").exists():
             model = PeftModel.from_pretrained(base_model, str(MODEL_DIR))
         else:
             st.warning("⚠️ LoRA adapters not found. Using base GPT-2.")
             model = base_model
         
-        # Move to device and set eval mode
         model = model.to(DEVICE)
         model.eval()
         
@@ -245,25 +172,19 @@ else:
 
 def generate_recipe(title, ingredients, temperature=0.8, top_p=0.9, top_k=50, 
                    max_length=512, num_samples=1):
-    """
-    Generate recipe directions from title and ingredients
-    """
+    """Generate recipe directions from title and ingredients"""
     if model is None or tokenizer is None:
         return ["Model not loaded. Please check configuration."]
     
-    # Format prompt (exactly as in training)
     prompt = f"Title: {title} | Ingredients: {ingredients} | Directions:"
     
-    # Encode based on tokenizer type
     if tokenizer_type == "tiktoken":
         input_ids = torch.tensor([tokenizer.encode(prompt, add_special_tokens=True)])
     else:
         input_ids = tokenizer.encode(prompt, return_tensors='pt')
     
-    # IMPORTANT: Move to correct device
     input_ids = input_ids.to(DEVICE)
     
-    # Generate
     results = []
     with torch.no_grad():
         for _ in range(num_samples):
@@ -281,10 +202,8 @@ def generate_recipe(title, ingredients, temperature=0.8, top_p=0.9, top_k=50,
                 no_repeat_ngram_size=3,
             )
             
-            # Decode
             generated_text = tokenizer.decode(output[0], skip_special_tokens=True)
             
-            # Extract directions (after "Directions:")
             if "Directions:" in generated_text:
                 directions = generated_text.split("Directions:")[-1].strip()
             else:
@@ -301,8 +220,6 @@ def generate_recipe(title, ingredients, temperature=0.8, top_p=0.9, top_k=50,
 def parse_directions(directions_text):
     """Parse generated directions into numbered steps"""
     steps = []
-    
-    # Split by "Step X:" pattern
     parts = directions_text.split("Step ")
     
     for part in parts[1:]:
@@ -310,7 +227,6 @@ def parse_directions(directions_text):
         if len(content) > 1:
             steps.append(content[1].strip())
     
-    # If no steps found, split by sentences
     if not steps:
         import re
         sentences = re.split(r'[.!?]+', directions_text)
@@ -323,136 +239,116 @@ def parse_directions(directions_text):
 # ============================================================================
 
 def main():
-    # Header
-    st.markdown('<div class="main-header">🍳 AI Recipe Generator</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Powered by Fine-tuned GPT-2</div>', unsafe_allow_html=True)
+    # Navigation Bar
+    st.markdown("""
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">🍳 AI Recipe Generator</div>
+            <div class="nav-links">
+                <a href="#home">Home</a>
+                <a href="#generate">Generate</a>
+                <a href="#about">About</a>
+            </div>
+        </div>
+    </nav>
+    """, unsafe_allow_html=True)
+    
+    # Hero Section
+    st.markdown("""
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1 class="hero-title">Create Delicious Recipes<br/>with AI Magic</h1>
+            <p class="hero-subtitle">Just enter a recipe title and ingredients, and let our AI powered by fine-tuned GPT-2 generate detailed cooking directions for you.</p>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <div class="stat-number">GPT-2</div>
+                    <div class="stat-label">Fine-tuned Model</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">∞</div>
+                    <div class="stat-label">Recipe Ideas</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">&lt;5s</div>
+                    <div class="stat-label">Generation Time</div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-image">
+            <div class="food-grid">
+                <div class="food-item">🍰</div>
+                <div class="food-item">🍕</div>
+                <div class="food-item">🍔</div>
+                <div class="food-item">🍜</div>
+                <div class="food-item">🥗</div>
+                <div class="food-item">🍱</div>
+            </div>
+        </div>
+    </section>
+    """, unsafe_allow_html=True)
     
     # Check if model loaded
     if model is None:
-        st.error("⚠️ Model failed to load. Please check your configuration.")
-        
-        with st.expander("📖 Setup Instructions"):
-            st.markdown(f"""
-            ### Current Configuration:
-            - **Kaggle Dataset ID:** `{KAGGLE_DATASET_ID}`
-            - **Model Directory:** `{MODEL_DIR}`
-            - **Expected Files:**
-              - `adapter_config.json`
-              - `adapter_model.safetensors`
-              - `tokenizer_config.json`
-              - `training_config.json`
-            
-            ### For Streamlit Cloud:
-            1. Upload your model files to Kaggle as a dataset
-            2. Make sure files are at root level (not in subfolder)
-            3. Add Kaggle credentials to Streamlit secrets:
-               ```toml
-               KAGGLE_USERNAME = "your_username"
-               KAGGLE_KEY = "your_api_key"
-               ```
-            
-            ### For Local Development:
-            Place model files in `downloaded_model/` directory or add secrets to `.streamlit/secrets.toml`
-            """)
+        st.markdown("""
+        <section class="error-section">
+            <div class="error-container">
+                <h2>⚠️ Model Not Available</h2>
+                <p>The AI model could not be loaded. Please check your configuration.</p>
+            </div>
+        </section>
+        """, unsafe_allow_html=True)
         return
     
-    # Sidebar - Generation Settings
-    with st.sidebar:
-        st.header("⚙️ Settings")
-        
-        st.info(f"💻 **Device:** {DEVICE.upper()}")
-        
-        temperature = st.slider(
-            "Temperature",
-            min_value=0.1,
-            max_value=2.0,
-            value=0.8,
-            step=0.1,
-            help="Higher = more creative"
-        )
-        
-        top_p = st.slider(
-            "Top P",
-            min_value=0.1,
-            max_value=1.0,
-            value=0.9,
-            step=0.05
-        )
-        
-        top_k = st.slider(
-            "Top K",
-            min_value=10,
-            max_value=100,
-            value=50,
-            step=10
-        )
-        
-        max_length = st.slider(
-            "Max Length",
-            min_value=256,
-            max_value=1024,
-            value=512,
-            step=64
-        )
-        
-        num_variations = st.selectbox(
-            "Number of Variations",
-            options=[1, 2, 3],
-            index=0
-        )
+    # Generation Section
+    st.markdown('<div id="generate-section-start" style="display: none;"></div>', unsafe_allow_html=True)
     
-    # Main content area
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns([1, 1], gap="large")
     
     with col1:
-        st.header("📝 Recipe Input")
+        st.markdown('<h2 class="section-title">Enter Recipe Details</h2>', unsafe_allow_html=True)
         
         recipe_title = st.text_input(
             "Recipe Title",
-            placeholder="e.g., Chocolate Chip Cookies"
+            placeholder="e.g., Chocolate Chip Cookies",
+            label_visibility="collapsed"
         )
         
         ingredients_input = st.text_area(
-            "Ingredients",
-            placeholder="Enter ingredients separated by commas",
-            height=150
+            "Ingredients (comma-separated)",
+            placeholder="e.g., butter, sugar, eggs, flour, chocolate chips, vanilla extract",
+            height=150,
+            label_visibility="collapsed"
         )
         
-        # Quick examples
-        st.subheader("💡 Try These Examples")
+        # Generation Settings (in main content, not sidebar)
+        st.markdown('<h3 class="settings-title">⚙️ Generation Settings</h3>', unsafe_allow_html=True)
         
-        examples = {
-            "🍪 Chocolate Chip Cookies": {
-                "title": "Chocolate Chip Cookies",
-                "ingredients": "butter, sugar, eggs, flour, chocolate chips, vanilla extract, baking soda, salt"
-            },
-            "🍝 Chicken Pasta": {
-                "title": "Creamy Chicken Pasta",
-                "ingredients": "chicken breast, pasta, heavy cream, garlic, parmesan cheese, olive oil, salt, pepper, basil"
-            },
-            "🥗 Caesar Salad": {
-                "title": "Classic Caesar Salad",
-                "ingredients": "romaine lettuce, caesar dressing, parmesan cheese, croutons, lemon juice, black pepper"
-            }
-        }
+        col_a, col_b = st.columns(2)
+        with col_a:
+            temperature = st.slider("Temperature", 0.1, 2.0, 0.8, 0.1, help="Higher = more creative")
+            top_k = st.slider("Top K", 10, 100, 50, 10)
+            max_length = st.slider("Max Length", 256, 1024, 512, 64)
         
-        selected_example = st.selectbox("Choose an example:", ["Custom"] + list(examples.keys()))
-        
-        if selected_example != "Custom":
-            recipe_title = examples[selected_example]["title"]
-            ingredients_input = examples[selected_example]["ingredients"]
-            st.rerun()
+        with col_b:
+            top_p = st.slider("Top P", 0.1, 1.0, 0.9, 0.05)
+            num_variations = st.selectbox("Variations", [1, 2, 3], index=0)
+            st.markdown(f'<div class="device-info">💻 Device: {DEVICE.upper()}</div>', unsafe_allow_html=True)
         
         generate_btn = st.button("🚀 Generate Recipe", type="primary", use_container_width=True)
     
     with col2:
-        st.header("✨ Generated Recipe")
+        st.markdown('<h2 class="section-title">Generated Recipe</h2>', unsafe_allow_html=True)
         
         if generate_btn:
             if not recipe_title or not ingredients_input:
-                st.warning("⚠️ Please enter both title and ingredients!")
+                st.markdown("""
+                <div class="placeholder">
+                    <div class="placeholder-icon">⚠️</div>
+                    <p>Please enter both recipe title and ingredients!</p>
+                </div>
+                """, unsafe_allow_html=True)
             else:
-                with st.spinner("🔮 Generating your recipe..."):
+                with st.spinner('🔮 Generating your recipe...'):
                     generated_directions = generate_recipe(
                         title=recipe_title,
                         ingredients=ingredients_input,
@@ -463,11 +359,13 @@ def main():
                         num_samples=num_variations
                     )
                     
+                    st.markdown('<div class="results-container">', unsafe_allow_html=True)
+                    
                     for idx, directions in enumerate(generated_directions):
                         if num_variations > 1:
-                            st.subheader(f"📋 Variation {idx + 1}")
+                            st.markdown(f'<h3 class="variation-title">📋 Variation {idx + 1}</h3>', unsafe_allow_html=True)
                         
-                        st.markdown('<div class="recipe-box">', unsafe_allow_html=True)
+                        st.markdown('<div class="recipe-card">', unsafe_allow_html=True)
                         
                         st.markdown(f"### 🍽️ {recipe_title}")
                         
@@ -485,9 +383,9 @@ def main():
                         if steps:
                             for i, step in enumerate(steps, 1):
                                 st.markdown(f"""
-                                    <div style="display: flex; align-items: start; margin: 1rem 0;">
+                                    <div class="step-item">
                                         <span class="step-number">{i}</span>
-                                        <span style="flex: 1;">{step}</span>
+                                        <span class="step-text">{step}</span>
                                     </div>
                                 """, unsafe_allow_html=True)
                         else:
@@ -515,8 +413,48 @@ DIRECTIONS:
                         
                         if idx < len(generated_directions) - 1:
                             st.divider()
+                    
+                    st.markdown('</div>', unsafe_allow_html=True)
         else:
-            st.info("👈 Enter a recipe title and ingredients, then click 'Generate Recipe'")
+            st.markdown("""
+            <div class="placeholder">
+                <div class="placeholder-icon">📝</div>
+                <p>Enter recipe details and click 'Generate Recipe' to see the magic!</p>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # About Section
+    st.markdown("""
+    <section class="about-section" id="about">
+        <div class="about-container">
+            <h2 class="section-title centered">About AI Recipe Generator</h2>
+            <div class="about-grid">
+                <div class="about-card">
+                    <div class="about-icon">🤖</div>
+                    <h3>GPT-2 Powered</h3>
+                    <p>Fine-tuned GPT-2 language model trained on thousands of recipes to generate authentic cooking directions.</p>
+                </div>
+                <div class="about-card">
+                    <div class="about-icon">⚡</div>
+                    <h3>Instant Results</h3>
+                    <p>Get complete recipe directions in seconds with customizable generation parameters for perfect results.</p>
+                </div>
+                <div class="about-card">
+                    <div class="about-icon">🎨</div>
+                    <h3>Creative Freedom</h3>
+                    <p>Experiment with any combination of ingredients and titles to discover unique recipe variations.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    """, unsafe_allow_html=True)
+    
+    # Footer
+    st.markdown("""
+    <footer class="footer">
+        <p>Built with ❤️ using Streamlit and PyTorch | Fine-tuned GPT-2 Model</p>
+    </footer>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
