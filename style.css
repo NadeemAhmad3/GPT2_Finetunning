@@ -67,18 +67,19 @@ div[data-testid="stVerticalBlock"] > div {
     gap: 0 !important;
 }
 
-/* GENERATION SECTION BACKGROUND */
-div[data-testid="stHorizontalBlock"] {
+/* CRITICAL: Target only the generation section that follows the anchor */
+div#generate-section-start + div[data-testid="stHorizontalBlock"] {
     background: #0f172a !important;
     padding: 5rem 4rem !important;
-    margin-top: 0 !important;
+    margin-top: 3rem !important;
     gap: 2rem !important;
 }
 
-/* Only apply dark background to the generation section (after hero) */
-div[data-testid="stVerticalBlock"] > div:nth-child(3) div[data-testid="stHorizontalBlock"] {
-    background: #0f172a !important;
-    padding: 5rem 4rem !important;
+/* Default for all other horizontal blocks - NO background, NO padding */
+div[data-testid="stHorizontalBlock"] {
+    gap: 2rem !important;
+    background: transparent !important;
+    padding: 0 !important;
 }
 
 div[data-testid="column"] {
@@ -163,7 +164,7 @@ div[data-baseweb="select"] > div {
 
 /* Button Styling */
 button[kind="primary"],
-.stButton > button[kind="primary"] {
+.stButton > button {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
     color: white !important;
     border: none !important;
@@ -177,7 +178,7 @@ button[kind="primary"],
 }
 
 button[kind="primary"]:hover,
-.stButton > button[kind="primary"]:hover {
+.stButton > button:hover {
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.6) !important;
     background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
@@ -708,7 +709,7 @@ button[kind="secondary"][aria-label*="Download"]:hover {
     }
     
     .about-section,
-    div[data-testid="stHorizontalBlock"] {
+    div#generate-section-start + div[data-testid="stHorizontalBlock"] {
         padding: 3rem 1.5rem !important;
     }
     
