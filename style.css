@@ -13,7 +13,11 @@ html, body {
     overflow-x: hidden;
 }
 
-/* AGGRESSIVE OVERRIDE FOR STREAMLIT CONTAINERS */
+/* AGGRESSIVE STREAMLIT OVERRIDES */
+.stApp {
+    background: #0a0e27 !important;
+}
+
 .main {
     background: #0a0e27 !important;
     padding: 0 !important;
@@ -46,7 +50,6 @@ section[data-testid="stSidebar"] {
     display: none !important;
 }
 
-/* Hide Streamlit branding & header */
 header[data-testid="stHeader"] {
     display: none !important;
 }
@@ -63,42 +66,25 @@ div[data-testid="stVerticalBlock"] {
     gap: 0 !important;
 }
 
-div[data-testid="stVerticalBlock"] > div {
-    gap: 0 !important;
-}
-
-/* CRITICAL: Target only the generation section that follows the anchor */
-div#generate-section-start + div[data-testid="stHorizontalBlock"] {
+/* Target the generation section */
+.generation-section-wrapper {
     background: #0f172a !important;
     padding: 5rem 4rem !important;
-    margin-top: 3rem !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+
+.generation-section-wrapper [data-testid="stHorizontalBlock"] {
     gap: 2rem !important;
 }
 
-/* Default for all other horizontal blocks - NO background, NO padding */
-div[data-testid="stHorizontalBlock"] {
-    gap: 2rem !important;
-    background: transparent !important;
+.generation-section-wrapper [data-testid="column"] {
     padding: 0 !important;
-}
-
-div[data-testid="column"] {
-    padding: 0 !important;
-    background: transparent !important;
-}
-
-/* Fix for labels */
-label {
-    color: #e2e8f0 !important;
-}
-
-div[data-testid="stMarkdownContainer"] p {
-    color: #e2e8f0 !important;
 }
 
 /* Text Input Styling */
-input[type="text"], 
-textarea,
+.stTextInput input,
+.stTextArea textarea,
 div[data-baseweb="input"] input,
 div[data-baseweb="textarea"] textarea {
     background: #1e293b !important;
@@ -110,52 +96,49 @@ div[data-baseweb="textarea"] textarea {
     transition: all 0.3s ease !important;
 }
 
-input[type="text"]:focus, 
-textarea:focus,
-div[data-baseweb="input"] input:focus,
-div[data-baseweb="textarea"] textarea:focus {
+.stTextInput input:focus,
+.stTextArea textarea:focus {
     border-color: #60a5fa !important;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
     outline: none !important;
 }
 
-input[type="text"]::placeholder, 
-textarea::placeholder {
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder {
     color: #64748b !important;
 }
 
-/* Slider Styling */
-div[data-testid="stSlider"] {
-    padding: 0.5rem 0 !important;
-}
-
-div[data-testid="stSlider"] label {
+/* Labels */
+.stTextInput label,
+.stTextArea label,
+.stSelectbox label,
+.stSlider label {
     color: #e2e8f0 !important;
     font-weight: 600 !important;
+    font-size: 1rem !important;
 }
 
-div[data-baseweb="slider"] {
+/* Slider Styling */
+.stSlider {
     padding: 0.5rem 0 !important;
 }
 
-div[data-baseweb="slider"] > div > div {
+.stSlider > div > div > div > div {
+    background: #3b82f6 !important;
+}
+
+.stSlider > div > div > div > div > div {
     background: #1e293b !important;
 }
 
-div[data-baseweb="slider"] [role="slider"] {
+[role="slider"] {
     background: #3b82f6 !important;
     border: 3px solid white !important;
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4) !important;
 }
 
 /* Selectbox Styling */
-div[data-baseweb="select"] {
-    background: #1e293b !important;
-    border: 2px solid #3b82f6 !important;
-    border-radius: 12px !important;
-}
-
-div[data-baseweb="select"] > div {
+.stSelectbox > div > div {
     background: #1e293b !important;
     border: 2px solid #3b82f6 !important;
     border-radius: 12px !important;
@@ -163,7 +146,6 @@ div[data-baseweb="select"] > div {
 }
 
 /* Button Styling */
-button[kind="primary"],
 .stButton > button {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
     color: white !important;
@@ -177,26 +159,20 @@ button[kind="primary"],
     width: 100%;
 }
 
-button[kind="primary"]:hover,
 .stButton > button:hover {
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.6) !important;
     background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
 }
 
-button[kind="secondary"],
-.stButton > button[kind="secondary"] {
-    background: #1e293b !important;
-    border: 2px solid #3b82f6 !important;
-    color: #60a5fa !important;
-    border-radius: 12px !important;
-    transition: all 0.3s ease !important;
+.stDownloadButton > button {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    margin-top: 1rem !important;
 }
 
-button[kind="secondary"]:hover,
-.stButton > button[kind="secondary"]:hover {
-    background: #3b82f6 !important;
-    color: white !important;
+.stDownloadButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4) !important;
 }
 
 /* Navbar */
@@ -414,13 +390,6 @@ button[kind="secondary"]:hover,
     font-size: 1.2rem;
 }
 
-/* Results Container */
-.results-container {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-}
-
 /* Variation Title */
 .variation-title {
     color: #60a5fa !important;
@@ -438,6 +407,7 @@ button[kind="secondary"]:hover,
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     border: 2px solid transparent;
     transition: all 0.3s ease;
+    margin-bottom: 2rem;
 }
 
 .recipe-card:hover {
@@ -611,26 +581,6 @@ button[kind="secondary"]:hover,
     width: 100%;
 }
 
-/* Streamlit Spinner */
-div[data-testid="stSpinner"] > div {
-    border-top-color: #3b82f6 !important;
-}
-
-/* Download Button Styling */
-.stDownloadButton > button,
-button[kind="secondary"][aria-label*="Download"] {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-    color: white !important;
-    border: none !important;
-    margin-top: 1rem !important;
-}
-
-.stDownloadButton > button:hover,
-button[kind="secondary"][aria-label*="Download"]:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4) !important;
-}
-
 /* Animations */
 @keyframes fadeInLeft {
     from {
@@ -708,8 +658,8 @@ button[kind="secondary"][aria-label*="Download"]:hover {
         grid-template-columns: 1fr;
     }
     
-    .about-section,
-    div#generate-section-start + div[data-testid="stHorizontalBlock"] {
+    .generation-section-wrapper,
+    .about-section {
         padding: 3rem 1.5rem !important;
     }
     
