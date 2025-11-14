@@ -17,7 +17,7 @@
 ### 📸 Application Preview
 
 <!-- Add your screenshots here -->
-![App Screenshot](screenshots/app-interface.png)
+![App Screenshot](<img width="1907" height="958" alt="image" src="https://github.com/user-attachments/assets/9b7633ad-30a2-4108-9f56-173fcf856cb9" />)
 *Modern, intuitive interface for recipe generation*
 
 ![Generated Recipe](screenshots/generated-recipe.png)
