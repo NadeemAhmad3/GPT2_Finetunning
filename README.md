@@ -464,19 +464,6 @@ ai-recipe-generator/
 ├── 📓 finetune.ipynb              # Complete training pipeline
 ├── 📋 requirements.txt            # Python dependencies
 ├── 📖 README.md                   # Documentation (this file)
-│
-├── 📂 downloaded_model/           # Fine-tuned model directory
-│   ├── adapter_config.json        # LoRA configuration
-│   └── adapter_model.bin          # LoRA weights
-│
-├── 📂 screenshots/                # Application screenshots
-│   ├── app-interface.png
-│   ├── generated-recipe.png
-│   └── demo.gif
-│
-└── 📂 data/                       # Dataset directory (gitignored)
-    ├── train.csv
-    └── val.csv
 ```
 
 ---
@@ -652,7 +639,7 @@ Contributions are welcome and appreciated! Here's how you can contribute:
 1. **Fork the repository**
    ```bash
    # Click "Fork" on GitHub, then clone your fork
-   git clone https://github.com/YOUR_USERNAME/GPT2_Finetunning.git
+   git clone https://github.com/NadeemAhmad3/GPT2_Finetunning.git
    ```
 
 2. **Create a feature branch**
@@ -713,7 +700,7 @@ in the Software without restriction...
 ### Nadeem Ahmad
 
 [![GitHub](https://img.shields.io/badge/GitHub-NadeemAhmad3-181717?style=for-the-badge&logo=github)](https://github.com/NadeemAhmad3)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=for-the-badge&logo=linkedin)](https://linkedin.com/in/your-linkedin-profile)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/nadeem-ahmad3/)
 [![Email](https://img.shields.io/badge/Email-nadeemahmad2703@gmail.com-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:nadeemahmad2703@gmail.com)
 
 **Project Link:** [https://github.com/NadeemAhmad3/GPT2_Finetunning](https://github.com/NadeemAhmad3/GPT2_Finetunning)
