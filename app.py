@@ -26,12 +26,19 @@ st.set_page_config(
 )
 
 # ============================================================================
-# LOAD CUSTOM CSS
+# LOAD CUSTOM CSS - FIXED
 # ============================================================================
 
-if os.path.exists('style.css'):
-    with open('style.css') as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+# Try multiple CSS loading methods to ensure it works
+css_file = Path('style.css')
+if css_file.exists():
+    with open(css_file) as f:
+        css_content = f.read()
+        st.markdown(f'<style>{css_content}</style>', unsafe_allow_html=True)
+else:
+    st.error("⚠️ CSS file 'style.css' not found! Please ensure it's in the same directory as your app.py")
+    st.info(f"Current directory: {os.getcwd()}")
+    st.info(f"Files in directory: {os.listdir('.')}")
 
 # ============================================================================
 # KAGGLE DATASET CONFIGURATION
@@ -299,9 +306,10 @@ def main():
         """, unsafe_allow_html=True)
         return
     
-    # Generation Section
+    # CRITICAL: This anchor div must be placed RIGHT BEFORE st.columns()
     st.markdown('<div id="generate-section-start" style="display: none;"></div>', unsafe_allow_html=True)
     
+    # Generation Section
     col1, col2 = st.columns([1, 1], gap="large")
     
     with col1:
@@ -320,7 +328,7 @@ def main():
             label_visibility="collapsed"
         )
         
-        # Generation Settings (in main content, not sidebar)
+        # Generation Settings
         st.markdown('<h3 class="settings-title">⚙️ Generation Settings</h3>', unsafe_allow_html=True)
         
         col_a, col_b = st.columns(2)
