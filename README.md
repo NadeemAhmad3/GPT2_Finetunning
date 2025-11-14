@@ -20,7 +20,7 @@
 <img width="1907" height="958" alt="image" src="https://github.com/user-attachments/assets/9b7633ad-30a2-4108-9f56-173fcf856cb9" />
 *Modern, intuitive interface for recipe generation*
 
-![Generated Recipe](screenshots/generated-recipe.png)
+<img width="1919" height="888" alt="image" src="https://github.com/user-attachments/assets/16e8ae47-1dac-40ec-978d-8b0820ea74a9" />
 *AI-generated cooking directions from ingredients*
 
 </div>
