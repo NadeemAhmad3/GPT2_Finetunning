@@ -10,7 +10,7 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-Models-yellow)](https://huggingface.co/)
 
-[Live Demo](#) • [Documentation](#-table-of-contents) • [Report Bug](https://github.com/NadeemAhmad3/GPT2_Finetunning/issues) • [Request Feature](https://github.com/NadeemAhmad3/GPT2_Finetunning/issues)
+[Live Demo](https://recipify-gpt2finetunning.streamlit.app/) • [Documentation](#-table-of-contents) • [Report Bug](https://github.com/NadeemAhmad3/GPT2_Finetunning/issues) • [Request Feature](https://github.com/NadeemAhmad3/GPT2_Finetunning/issues)
 
 ---
 
