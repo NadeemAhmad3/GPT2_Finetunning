@@ -1,5 +1,5 @@
 """
-GPT-2 Recipe Generator - Modern Web Interface
+GPT-2 Recipe Generator - Modern Web Interface (CSS FIXED)
 """
 
 import streamlit as st
@@ -26,19 +26,53 @@ st.set_page_config(
 )
 
 # ============================================================================
-# LOAD CUSTOM CSS - FIXED
+# LOAD CUSTOM CSS - ENHANCED WITH INLINE STYLES
 # ============================================================================
 
-# Try multiple CSS loading methods to ensure it works
+# First try to load external CSS
 css_file = Path('style.css')
 if css_file.exists():
     with open(css_file) as f:
         css_content = f.read()
         st.markdown(f'<style>{css_content}</style>', unsafe_allow_html=True)
-else:
-    st.error("⚠️ CSS file 'style.css' not found! Please ensure it's in the same directory as your app.py")
-    st.info(f"Current directory: {os.getcwd()}")
-    st.info(f"Files in directory: {os.listdir('.')}")
+
+# Then add critical inline CSS to ensure it applies
+st.markdown("""
+<style>
+/* Critical inline styles to ensure they apply */
+.main {
+    background: #0a0e27 !important;
+    padding: 0 !important;
+}
+
+.stApp {
+    background: #0a0e27 !important;
+}
+
+/* Target the generation section more aggressively */
+[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {
+    background: #0f172a !important;
+    padding: 5rem 4rem !important;
+    margin-top: 3rem !important;
+}
+
+/* Make sure text inputs are styled */
+.stTextInput input, .stTextArea textarea {
+    background: #1e293b !important;
+    border: 2px solid #3b82f6 !important;
+    border-radius: 12px !important;
+    color: #e2e8f0 !important;
+}
+
+/* Ensure buttons are styled */
+.stButton button {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    color: white !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ============================================================================
 # KAGGLE DATASET CONFIGURATION
@@ -50,7 +84,7 @@ BASE_MODEL = "gpt2"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # ============================================================================
-# DOWNLOAD MODEL FROM KAGGLE
+# MODEL LOADING FUNCTIONS (keeping your existing code)
 # ============================================================================
 
 @st.cache_resource
@@ -82,10 +116,6 @@ def download_and_setup_model():
         return True
     
     return (MODEL_DIR / "adapter_config.json").exists()
-
-# ============================================================================
-# LOAD MODEL & TOKENIZER
-# ============================================================================
 
 @st.cache_resource
 def load_model_and_tokenizer():
@@ -174,10 +204,10 @@ else:
     tokenizer_type = st.session_state.tokenizer_type
 
 # ============================================================================
-# RECIPE GENERATION FUNCTION
+# RECIPE GENERATION FUNCTIONS (keeping your existing code)
 # ============================================================================
 
-def generate_recipe(title, ingredients, temperature=0.8, top_p=0.9, top_k=50, 
+def generate_recipe(title, ingredients, temperature=0.8, top_p=0.9, top_k=50,
                    max_length=512, num_samples=1):
     """Generate recipe directions from title and ingredients"""
     if model is None or tokenizer is None:
@@ -219,10 +249,6 @@ def generate_recipe(title, ingredients, temperature=0.8, top_p=0.9, top_k=50,
             results.append(directions)
     
     return results
-
-# ============================================================================
-# PARSE DIRECTIONS INTO STEPS
-# ============================================================================
 
 def parse_directions(directions_text):
     """Parse generated directions into numbered steps"""
@@ -306,10 +332,12 @@ def main():
         """, unsafe_allow_html=True)
         return
     
-    # CRITICAL: This anchor div must be placed RIGHT BEFORE st.columns()
-    st.markdown('<div id="generate-section-start" style="display: none;"></div>', unsafe_allow_html=True)
+    # Add spacing before generation section
+    st.markdown('<div style="height: 3rem;"></div>', unsafe_allow_html=True)
     
-    # Generation Section
+    # Generation Section with wrapper div for styling
+    st.markdown('<div class="generation-section-wrapper">', unsafe_allow_html=True)
+    
     col1, col2 = st.columns([1, 1], gap="large")
     
     with col1:
@@ -318,22 +346,21 @@ def main():
         recipe_title = st.text_input(
             "Recipe Title",
             placeholder="e.g., Chocolate Chip Cookies",
-            label_visibility="collapsed"
+            key="recipe_title"
         )
         
         ingredients_input = st.text_area(
-            "Ingredients (comma-separated)",
+            "Ingredients",
             placeholder="e.g., butter, sugar, eggs, flour, chocolate chips, vanilla extract",
             height=150,
-            label_visibility="collapsed"
+            key="ingredients"
         )
         
-        # Generation Settings
         st.markdown('<h3 class="settings-title">⚙️ Generation Settings</h3>', unsafe_allow_html=True)
         
         col_a, col_b = st.columns(2)
         with col_a:
-            temperature = st.slider("Temperature", 0.1, 2.0, 0.8, 0.1, help="Higher = more creative")
+            temperature = st.slider("Temperature", 0.1, 2.0, 0.8, 0.1)
             top_k = st.slider("Top K", 10, 100, 50, 10)
             max_length = st.slider("Max Length", 256, 1024, 512, 64)
         
@@ -366,8 +393,6 @@ def main():
                         max_length=max_length,
                         num_samples=num_variations
                     )
-                    
-                    st.markdown('<div class="results-container">', unsafe_allow_html=True)
                     
                     for idx, directions in enumerate(generated_directions):
                         if num_variations > 1:
@@ -409,7 +434,7 @@ INGREDIENTS:
 
 DIRECTIONS:
 {chr(10).join([f'{i}. {step}' for i, step in enumerate(steps, 1)])}
-                        """
+"""
                         
                         st.download_button(
                             label="📥 Download Recipe",
@@ -421,8 +446,6 @@ DIRECTIONS:
                         
                         if idx < len(generated_directions) - 1:
                             st.divider()
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.markdown("""
             <div class="placeholder">
@@ -430,6 +453,8 @@ DIRECTIONS:
                 <p>Enter recipe details and click 'Generate Recipe' to see the magic!</p>
             </div>
             """, unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)  # Close generation-section-wrapper
     
     # About Section
     st.markdown("""
