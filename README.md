@@ -206,16 +206,16 @@ graph LR
 
 ```
 ┌─────────────────────────────────────┐
-│     GPT-2 Base Model (124M)        │
+│     GPT-2 Base Model (124M)         │
 │     ↓                               │
-│     LoRA Adapters (294K)           │
-│     • Rank: 8                      │
-│     • Alpha: 16                    │
-│     • Trainable: 0.24%             │
+│     LoRA Adapters (294K)            │
+│     • Rank: 8                       │
+│     • Alpha: 16                     │
+│     • Trainable: 0.24%              │
 │     ↓                               │
-│     Fine-tuned on 157K Recipes     │
+│     Fine-tuned on 157K Recipes      │
 │     ↓                               │
-│     Recipe Generation Engine       │
+│     Recipe Generation Engine        │
 └─────────────────────────────────────┘
 ```
 
