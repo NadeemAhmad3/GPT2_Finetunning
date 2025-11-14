@@ -8,15 +8,21 @@
 html, body {
     margin: 0 !important;
     padding: 0 !important;
-    background: #0a0e27;
-    color: #e2e8f0;
+    background: #0a0e27 !important;
+    color: #e2e8f0 !important;
     overflow-x: hidden;
 }
 
 /* AGGRESSIVE OVERRIDE FOR STREAMLIT CONTAINERS */
+.main {
+    background: #0a0e27 !important;
+    padding: 0 !important;
+}
+
 div[data-testid="stAppViewContainer"] {
     padding: 0 !important;
     margin: 0 !important;
+    background: #0a0e27 !important;
 }
 
 div.block-container {
@@ -36,34 +42,64 @@ section.main > div {
     margin: 0 !important;
 }
 
+section[data-testid="stSidebar"] {
+    display: none !important;
+}
+
 /* Hide Streamlit branding & header */
 header[data-testid="stHeader"] {
     display: none !important;
 }
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
+
+#MainMenu {
+    visibility: hidden !important;
+}
+
+footer {
+    visibility: hidden !important;
+}
 
 div[data-testid="stVerticalBlock"] {
     gap: 0 !important;
 }
 
-/* --- SELECTOR FOR THE GENERATION SECTION --- */
-div#generate-section-start + div[data-testid="stHorizontalBlock"] {
-    background: #0f172a;
-    padding: 5rem 4rem;
-    margin-top: 3rem;
+div[data-testid="stVerticalBlock"] > div {
+    gap: 0 !important;
 }
 
+/* GENERATION SECTION BACKGROUND */
 div[data-testid="stHorizontalBlock"] {
+    background: #0f172a !important;
+    padding: 5rem 4rem !important;
+    margin-top: 0 !important;
     gap: 2rem !important;
+}
+
+/* Only apply dark background to the generation section (after hero) */
+div[data-testid="stVerticalBlock"] > div:nth-child(3) div[data-testid="stHorizontalBlock"] {
+    background: #0f172a !important;
+    padding: 5rem 4rem !important;
 }
 
 div[data-testid="column"] {
     padding: 0 !important;
+    background: transparent !important;
+}
+
+/* Fix for labels */
+label {
+    color: #e2e8f0 !important;
+}
+
+div[data-testid="stMarkdownContainer"] p {
+    color: #e2e8f0 !important;
 }
 
 /* Text Input Styling */
-input[type="text"], textarea {
+input[type="text"], 
+textarea,
+div[data-baseweb="input"] input,
+div[data-baseweb="textarea"] textarea {
     background: #1e293b !important;
     border: 2px solid #3b82f6 !important;
     border-radius: 12px !important;
@@ -73,22 +109,35 @@ input[type="text"], textarea {
     transition: all 0.3s ease !important;
 }
 
-input[type="text"]:focus, textarea:focus {
+input[type="text"]:focus, 
+textarea:focus,
+div[data-baseweb="input"] input:focus,
+div[data-baseweb="textarea"] textarea:focus {
     border-color: #60a5fa !important;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
     outline: none !important;
 }
 
-input[type="text"]::placeholder, textarea::placeholder {
+input[type="text"]::placeholder, 
+textarea::placeholder {
     color: #64748b !important;
 }
 
 /* Slider Styling */
+div[data-testid="stSlider"] {
+    padding: 0.5rem 0 !important;
+}
+
+div[data-testid="stSlider"] label {
+    color: #e2e8f0 !important;
+    font-weight: 600 !important;
+}
+
 div[data-baseweb="slider"] {
     padding: 0.5rem 0 !important;
 }
 
-div[data-baseweb="slider"] > div {
+div[data-baseweb="slider"] > div > div {
     background: #1e293b !important;
 }
 
@@ -99,14 +148,22 @@ div[data-baseweb="slider"] [role="slider"] {
 }
 
 /* Selectbox Styling */
-div[data-baseweb="select"] > div {
+div[data-baseweb="select"] {
     background: #1e293b !important;
     border: 2px solid #3b82f6 !important;
     border-radius: 12px !important;
 }
 
+div[data-baseweb="select"] > div {
+    background: #1e293b !important;
+    border: 2px solid #3b82f6 !important;
+    border-radius: 12px !important;
+    color: #e2e8f0 !important;
+}
+
 /* Button Styling */
-button[kind="primary"] {
+button[kind="primary"],
+.stButton > button[kind="primary"] {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
     color: white !important;
     border: none !important;
@@ -116,14 +173,18 @@ button[kind="primary"] {
     font-weight: 700 !important;
     transition: all 0.3s ease !important;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+    width: 100%;
 }
 
-button[kind="primary"]:hover {
+button[kind="primary"]:hover,
+.stButton > button[kind="primary"]:hover {
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.6) !important;
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
 }
 
-button[kind="secondary"] {
+button[kind="secondary"],
+.stButton > button[kind="secondary"] {
     background: #1e293b !important;
     border: 2px solid #3b82f6 !important;
     color: #60a5fa !important;
@@ -131,7 +192,8 @@ button[kind="secondary"] {
     transition: all 0.3s ease !important;
 }
 
-button[kind="secondary"]:hover {
+button[kind="secondary"]:hover,
+.stButton > button[kind="secondary"]:hover {
     background: #3b82f6 !important;
     color: white !important;
 }
@@ -316,9 +378,9 @@ button[kind="secondary"]:hover {
 .settings-title {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #60a5fa;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
+    color: #60a5fa !important;
+    margin-top: 2rem !important;
+    margin-bottom: 1rem !important;
 }
 
 /* Device Info */
@@ -360,11 +422,11 @@ button[kind="secondary"]:hover {
 
 /* Variation Title */
 .variation-title {
-    color: #60a5fa;
-    font-size: 1.8rem;
-    font-weight: 800;
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
+    color: #60a5fa !important;
+    font-size: 1.8rem !important;
+    font-weight: 800 !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.5rem !important;
 }
 
 /* Recipe Card */
@@ -384,24 +446,24 @@ button[kind="secondary"]:hover {
 }
 
 .recipe-card h3 {
-    color: #e2e8f0;
-    font-size: 2rem;
-    font-weight: 800;
-    margin-bottom: 1.5rem;
+    color: #e2e8f0 !important;
+    font-size: 2rem !important;
+    font-weight: 800 !important;
+    margin-bottom: 1.5rem !important;
 }
 
 .recipe-card strong {
-    color: #60a5fa;
-    font-size: 1.2rem;
-    display: block;
-    margin-top: 1.5rem;
-    margin-bottom: 1rem;
+    color: #60a5fa !important;
+    font-size: 1.2rem !important;
+    display: block !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 1rem !important;
 }
 
 .recipe-card hr {
-    border: none;
-    border-top: 2px solid #334155;
-    margin: 1.5rem 0;
+    border: none !important;
+    border-top: 2px solid #334155 !important;
+    margin: 1.5rem 0 !important;
 }
 
 /* Ingredient Tags */
@@ -554,14 +616,16 @@ div[data-testid="stSpinner"] > div {
 }
 
 /* Download Button Styling */
-button[kind="secondary"][data-testid*="download"] {
+.stDownloadButton > button,
+button[kind="secondary"][aria-label*="Download"] {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
     color: white !important;
     border: none !important;
     margin-top: 1rem !important;
 }
 
-button[kind="secondary"][data-testid*="download"]:hover {
+.stDownloadButton > button:hover,
+button[kind="secondary"][aria-label*="Download"]:hover {
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4) !important;
 }
@@ -644,8 +708,8 @@ button[kind="secondary"][data-testid*="download"]:hover {
     }
     
     .about-section,
-    div#generate-section-start + div[data-testid="stHorizontalBlock"] {
-        padding: 3rem 1.5rem;
+    div[data-testid="stHorizontalBlock"] {
+        padding: 3rem 1.5rem !important;
     }
     
     .section-title {
