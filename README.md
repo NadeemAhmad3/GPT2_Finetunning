@@ -34,8 +34,8 @@ ai-recipe-generator/
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ai-recipe-generator.git
-cd ai-recipe-generator
+git clone https://github.com/NadeemAhmad3/GPT2_Finetunning.git
+cd GPT2_Finetunning
 
 # Create virtual environment
 python -m venv venv
@@ -54,14 +54,15 @@ The app will open at `http://localhost:8501`
 
 ## 📦 Requirements
 ```
-streamlit>=1.28.0
-torch>=2.0.0
-transformers>=4.30.0
-peft>=0.5.0
-tiktoken>=0.5.0
-numpy>=1.24.0
-pandas>=2.0.0
-kaggle>=1.5.16
+streamlit>=1.38.0
+torch>=2.5.0
+torchvision>=0.21.0
+transformers>=4.35.0
+peft>=0.7.1
+tiktoken>=0.5.2
+numpy>=1.24.3
+pandas>=2.1.4
+kaggle>=1.6.0
 ```
 
 ## 🎓 Model Training
@@ -215,9 +216,8 @@ This project is licensed under the MIT License.
 
 ## 📧 Contact
 
-- GitHub: [@yourusername](https://github.com/yourusername)
-- Email: your.email@example.com
+- GitHub: [@yourusername](https://github.com/NadeemAhmad3)
+- Email: nadeemahmad2703@gmail.com
 
 ---
 
-**Made with ❤️ using AI and LoRA**
